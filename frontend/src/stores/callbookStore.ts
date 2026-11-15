@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import {
   checkBackendHealth,
@@ -21,6 +21,7 @@ import {
   saveWorkspaceState
 } from '../storage/projectStorage'
 import type {
+  AlignedCallCue,
   CallCategory,
   CallPreset,
   CallProject,
@@ -33,6 +34,7 @@ import type {
   SectionDetectOptions,
   TrackDetailResponse
 } from '../types/callbook'
+import { mergeAdjacentLyricLines, normalizeAlignedCalls } from '../utils/alignedCalls'
 import { parseLrcClientFallback } from '../utils/lrcParser'
 import {
   DEFAULT_SECTION_THRESHOLDS,
@@ -44,6 +46,16 @@ import {
   suggestManualSectionRange,
   type SectionKind
 } from '../utils/sectionDetector'
+
+const AUTO_ADVANCE_LS_KEY = 'callbook_auto_advance_on_tag_v1'
+
+function loadAutoAdvancePref(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(AUTO_ADVANCE_LS_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 export type TimelineEntry = { kind: 'line'; sortMs: number; line: LyricLine }
 
@@ -67,6 +79,17 @@ export const useCallbookStore = defineStore('callbook', () => {
   const metronomeVolume = ref(0.95)
   const gtBeepEnabled = ref(true)
   const followPlayback = ref(true)
+  const autoAdvanceOnTag = ref(loadAutoAdvancePref())
+
+  watch(autoAdvanceOnTag, (val) => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(AUTO_ADVANCE_LS_KEY, val ? 'true' : 'false')
+      }
+    } catch {
+      // Ignore storage failures
+    }
+  })
 
   const currentBeatInBar = ref(1)
   const currentBar = ref(1)
@@ -762,19 +785,95 @@ export const useCallbookStore = defineStore('callbook', () => {
     }
     if (typeof payload.endTimeMs === 'number') line.endTimeMs = Math.max(line.startTimeMs + 300, payload.endTimeMs)
 
-    if (origChanged && payload.original.trim() && getLineKind(line) === 'lyric') {
-      try {
-        const res = await convertRubyApi(payload.original, false)
-        line.text.ruby = res.isJapanese ? res.ruby : undefined
-        line.text.romaji = res.isJapanese ? res.romaji : undefined
-      } catch {
-        // Keep editable fallback if offline
+    if (origChanged) {
+      if (!payload.original.trim()) {
+        line.alignedCalls = undefined
+      } else if (line.alignedCalls?.length) {
+        const renormalized = normalizeAlignedCalls(line.alignedCalls, payload.original.length)
+        line.alignedCalls = renormalized.length > 0 ? renormalized : undefined
+      }
+      if (payload.original.trim() && getLineKind(line) === 'lyric') {
+        try {
+          const res = await convertRubyApi(payload.original, false)
+          line.text.ruby = res.isJapanese ? res.ruby : undefined
+          line.text.romaji = res.isJapanese ? res.romaji : undefined
+        } catch {
+          // Keep editable fallback if offline
+        }
       }
     }
 
     project.value.lines.sort((a, b) => a.startTimeMs - b.startTimeMs)
     project.value.alerts.sort((a, b) => a.triggerTimeMs - b.triggerTimeMs)
     syncEngineConfig()
+    schedulePersist()
+  }
+
+  function mergeWithNextLine(lineId: string): boolean {
+    const lines = sortedLines.value
+    const idx = lines.findIndex((l) => l.id === lineId)
+    if (idx < 0 || idx + 1 >= lines.length) return false
+    const first = lines[idx]
+    const second = lines[idx + 1]
+    if (getLineKind(first) !== 'lyric' || getLineKind(second) !== 'lyric') {
+      setStatus('段落标题行不能与歌词直接合并')
+      return false
+    }
+
+    const merged = mergeAdjacentLyricLines(first, second)
+    project.value.lines = project.value.lines
+      .filter((l) => l.id !== second.id)
+      .map((l) => (l.id === first.id ? merged : l))
+    project.value.lines.sort((a, b) => a.startTimeMs - b.startTimeMs)
+
+    const firstAlert = getAlertForLine(first.id)
+    const secondAlert = getAlertForLine(second.id)
+    if (firstAlert && secondAlert && firstAlert.id !== secondAlert.id) {
+      firstAlert.triggerTimeMs = merged.startTimeMs
+      project.value.alerts = project.value.alerts.filter((a) => a.id !== secondAlert.id)
+    } else if (!firstAlert && secondAlert) {
+      secondAlert.targetLineId = first.id
+      secondAlert.triggerTimeMs = merged.startTimeMs
+    } else if (firstAlert) {
+      firstAlert.triggerTimeMs = merged.startTimeMs
+    }
+    project.value.alerts.sort((a, b) => a.triggerTimeMs - b.triggerTimeMs)
+
+    activeLineId.value = first.id
+    syncEngineConfig()
+    schedulePersist()
+    setStatus('已合并相邻两句歌词')
+    return true
+  }
+
+  function upsertAlignedCall(
+    lineId: string,
+    input: { id?: string; start: number; end: number; text: string; color?: string }
+  ): void {
+    const line = project.value.lines.find((l) => l.id === lineId)
+    if (!line || !line.text.original.length) return
+    const cleanText = input.text.trim()
+    if (!cleanText) return
+    const nextCue: AlignedCallCue = {
+      id: input.id || `ac-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      start: input.start,
+      end: input.end,
+      text: cleanText,
+      ...(input.color ? { color: input.color } : {})
+    }
+    const existing = (line.alignedCalls ?? []).filter(
+      (c) => c.id !== nextCue.id && !(nextCue.start < c.end && nextCue.end > c.start)
+    )
+    const normalized = normalizeAlignedCalls([...existing, nextCue], line.text.original.length)
+    line.alignedCalls = normalized.length > 0 ? normalized : undefined
+    schedulePersist()
+  }
+
+  function removeAlignedCall(lineId: string, cueId: string): void {
+    const line = project.value.lines.find((l) => l.id === lineId)
+    if (!line || !line.alignedCalls?.length) return
+    const remaining = line.alignedCalls.filter((c) => c.id !== cueId)
+    line.alignedCalls = remaining.length > 0 ? remaining : undefined
     schedulePersist()
   }
 
@@ -1158,7 +1257,11 @@ export const useCallbookStore = defineStore('callbook', () => {
     const clonedProject = normalizeCallProject(JSON.parse(JSON.stringify(project.value)) as CallProject)
     const clonedPresets = JSON.parse(JSON.stringify(customPresets.value)) as CallPreset[]
     const taggedCount = clonedProject.lines.filter(
-      (l) => l.calls.length > 0 || Boolean(l.customShout?.trim()) || Boolean(l.tailUpdraft)
+      (l) =>
+        l.calls.length > 0 ||
+        Boolean(l.customShout?.trim()) ||
+        Boolean(l.tailUpdraft) ||
+        Boolean(l.alignedCalls?.length)
     ).length
 
     const existing =
@@ -1300,6 +1403,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     metronomeVolume,
     gtBeepEnabled,
     followPlayback,
+    autoAdvanceOnTag,
     currentBeatInBar,
     currentBar,
     isDetectingBpm,
@@ -1342,6 +1446,9 @@ export const useCallbookStore = defineStore('callbook', () => {
     setSectionThresholds,
     detectSections,
     updateLyricLineText,
+    mergeWithNextLine,
+    upsertAlignedCall,
+    removeAlignedCall,
     stampLineToCurrentTime,
     deleteLyricLine,
     addCustomPreset,

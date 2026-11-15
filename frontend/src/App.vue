@@ -51,7 +51,7 @@ watch(
 watch(
   () =>
     store.sortedLines.map(
-      (line) => line.calls.length + (line.customShout.trim() ? 1 : 0)
+      (line) => line.calls.length + (line.customShout.trim() ? 1 : 0) + (line.alignedCalls?.length ?? 0)
     ),
   (counts) => {
     uiStore.refreshCallDensitySeries(counts)
@@ -147,7 +147,8 @@ function handleKeyDown(e: KeyboardEvent): void {
     e.preventDefault()
     triggerCallPresetForLine({
       lineId: store.activeLineId,
-      presetId: matched.id
+      presetId: matched.id,
+      autoAdvance: store.autoAdvanceOnTag
     })
   }
 }

@@ -10,6 +10,7 @@ export function triggerCallPresetForLine(opts: {
 }): void {
   const store = useCallbookStore()
   const uiStore = useUiStore()
+  const shouldAutoAdvance = opts.autoAdvance ?? store.autoAdvanceOnTag
 
   const targetLine = opts.lineId
     ? store.project.lines.find((l) => l.id === opts.lineId)
@@ -30,7 +31,7 @@ export function triggerCallPresetForLine(opts: {
     }
     uiStore.openSingAlongPrompt({
       lineId: targetLine.id,
-      autoAdvance: Boolean(opts.autoAdvance),
+      autoAdvance: shouldAutoAdvance,
       onConfirm: (text: string) => {
         const clean = text.trim()
         if (!clean) return
@@ -40,7 +41,7 @@ export function triggerCallPresetForLine(opts: {
           if (idx >= 0) store.updateLineCallSuffix(targetLine.id, idx, clean)
         } else {
           const added = store.toggleLineCall(targetLine.id, SING_ALONG_PRESET_ID, clean)
-          if (added && opts.autoAdvance) {
+          if (added && shouldAutoAdvance) {
             store.stepActiveLine(1)
           }
         }
@@ -50,7 +51,7 @@ export function triggerCallPresetForLine(opts: {
   }
 
   const added = store.toggleLineCall(targetLine.id, opts.presetId)
-  if (added && opts.autoAdvance) {
+  if (added && shouldAutoAdvance) {
     store.stepActiveLine(1)
   }
 }

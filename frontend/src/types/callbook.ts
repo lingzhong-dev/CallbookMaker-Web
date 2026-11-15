@@ -31,6 +31,14 @@ export interface GtAlert {
   callTimingCue?: string // 编者手动输入的打 Call 时机/喊声，如 'se-no' / 'hi hi hihihihi'
 }
 
+export interface AlignedCallCue {
+  id: string
+  start: number // 0-based start offset in line.text.original
+  end: number // 0-based exclusive end offset in line.text.original
+  text: string // Displayed Call cue text aligned directly above original[start..end]
+  color?: string // Optional pill accent color (Hex)
+}
+
 export interface LyricLine {
   id: string
   startTimeMs: number
@@ -40,6 +48,7 @@ export interface LyricLine {
   calls: LineCallTag[] // 行首挂载的军Call文字标签（支持多标签组合）
   tailUpdraft?: boolean // 尾句上升气流（独立于行首军Call）
   customShout: string // 自定义喊声/Mix/口上文本
+  alignedCalls?: AlignedCallCue[] // 歌词局部对位 Call 词（直接对齐显示在对应歌词上方）
   text: {
     original: string // 原文（日/中/英）
     ruby?: string // 注音 HTML（如 <ruby>夜空<rt>よぞら</rt></ruby>）

@@ -134,6 +134,14 @@ function formatLineCallsAndMix(line: LyricLine, presetMap: Map<string, CallPrese
   if (line.customShout?.trim()) {
     parts.push(line.customShout.trim())
   }
+  if (Array.isArray(line.alignedCalls)) {
+    for (const cue of line.alignedCalls) {
+      const clean = cue.text?.trim()
+      if (clean && !parts.includes(clean)) {
+        parts.push(clean)
+      }
+    }
+  }
   return parts.length > 0 ? `（${parts.join(' / ')}）` : ''
 }
 

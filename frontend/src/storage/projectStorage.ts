@@ -1,3 +1,4 @@
+import { normalizeAlignedCalls } from '../utils/alignedCalls'
 import type {
   ArchiveSessionState,
   CallPreset,
@@ -154,11 +155,15 @@ export function normalizeCallProject(raw: CallProject): CallProject {
   const tuner = typeof meta.tuner === 'string' ? meta.tuner : ''
   const showTuner = typeof meta.showTuner === 'boolean' ? meta.showTuner : tuner.trim().length > 0
   const lines = Array.isArray(raw.lines)
-    ? raw.lines.map((line) => ({
-        ...line,
-        kind: line.kind ?? 'lyric',
-        tailUpdraft: Boolean(line.tailUpdraft)
-      }))
+    ? raw.lines.map((line) => {
+        const normalizedAligned = normalizeAlignedCalls(line.alignedCalls, line.text?.original?.length ?? 0)
+        return {
+          ...line,
+          kind: line.kind ?? 'lyric',
+          tailUpdraft: Boolean(line.tailUpdraft),
+          ...(normalizedAligned.length > 0 ? { alignedCalls: normalizedAligned } : { alignedCalls: undefined })
+        }
+      })
     : []
   const sortedLines = [...lines].sort((a, b) => a.startTimeMs - b.startTimeMs)
   const rawAlerts = Array.isArray(raw.alerts) ? raw.alerts : []
@@ -274,7 +279,11 @@ async function idbArchivePut<T>(key: string, value: T): Promise<void> {
 export function normalizeArchiveEntry(raw: CallbookArchiveEntry): CallbookArchiveEntry {
   const project = normalizeCallProject(raw.project)
   const taggedCount = project.lines.filter(
-    (l) => l.calls.length > 0 || Boolean(l.customShout?.trim()) || Boolean(l.tailUpdraft)
+    (l) =>
+      l.calls.length > 0 ||
+      Boolean(l.customShout?.trim()) ||
+      Boolean(l.alignedCalls?.length) ||
+      Boolean(l.tailUpdraft)
   ).length
   return {
     id: String(raw.id || `archive-${Date.now()}`),

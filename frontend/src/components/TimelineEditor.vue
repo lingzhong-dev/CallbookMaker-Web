@@ -14,6 +14,11 @@ import { useCallbookStore } from '../stores/callbookStore'
 import { useUiStore } from '../stores/uiStore'
 import type { CallCategory, CallPreset, LyricLine, LyricLineKind } from '../types/callbook'
 import {
+  getUnalignedCustomShout,
+  resolveLineAlignedCalls,
+  type ResolvedAlignedCue
+} from '../utils/alignedCalls'
+import {
   openCustomPresetContextMenu,
   requestDeleteCustomPresetWithConfirm,
   triggerCallPresetForLine
@@ -28,6 +33,7 @@ import {
   type SectionKind
 } from '../utils/sectionDetector'
 import { formatMsToClock, parseClockToMs } from '../utils/time'
+import AlignedLyricText from './AlignedLyricText.vue'
 import CallBadge from './CallBadge.vue'
 import PrismSwitch from './prism/PrismSwitch.vue'
 
@@ -174,6 +180,7 @@ watch(
   () => store.activeLineId,
   async (newId) => {
     showInlinePresetCreator.value = false
+    alignedPickerLineId.value = null
     if (!newId || store.isPracticeMode) return
     await scrollToLine(newId)
   }
@@ -228,10 +235,98 @@ function handleCreatePreset(targetLineId?: string): void {
   if (targetLineId) {
     inlinePresetLabel.value = ''
     showInlinePresetCreator.value = false
-    store.toggleLineCall(targetLineId, created.id)
+    const added = store.toggleLineCall(targetLineId, created.id)
+    if (added && store.autoAdvanceOnTag) {
+      store.stepActiveLine(1)
+    }
   } else {
     newPresetLabel.value = ''
     showNewPresetForm.value = false
+  }
+}
+
+const ALIGNED_CALL_COLORS = ['', '#6366F1', '#EC4899', '#F59E0B', '#10B981', '#0EA5E9', '#8B5CF6'] as const
+const alignedPickerLineId = ref<string | null>(null)
+const alignedAnchorStart = ref<number | null>(null)
+const alignedSelStart = ref(0)
+const alignedSelEnd = ref(0)
+const alignedCallText = ref('')
+const alignedCallColor = ref('')
+const alignedCallTextTouched = ref(false)
+
+function canMergeWithNext(lineId: string): boolean {
+  const items = store.timelineItems
+  const idx = items.findIndex((it) => it.line.id === lineId)
+  if (idx < 0 || idx + 1 >= items.length) return false
+  return !isSectionLine(items[idx].line) && !isSectionLine(items[idx + 1].line)
+}
+
+function getLineAutoAlignedCues(line: LyricLine): ResolvedAlignedCue[] {
+  return resolveLineAlignedCalls(line).aligned.filter((c) => Boolean(c.isAuto))
+}
+
+function lyricCharOffsets(original: string): Array<{ char: string; start: number; end: number }> {
+  const out: Array<{ char: string; start: number; end: number }> = []
+  let pos = 0
+  for (const ch of original) {
+    out.push({ char: ch, start: pos, end: pos + ch.length })
+    pos += ch.length
+  }
+  return out
+}
+
+function openAlignedPicker(line: LyricLine): void {
+  if (alignedPickerLineId.value === line.id) {
+    alignedPickerLineId.value = null
+    return
+  }
+  const chars = lyricCharOffsets(line.text.original)
+  alignedPickerLineId.value = line.id
+  alignedAnchorStart.value = chars[0]?.start ?? null
+  alignedSelStart.value = chars[0]?.start ?? 0
+  alignedSelEnd.value = chars[0]?.end ?? 0
+  alignedCallText.value = line.text.original.slice(alignedSelStart.value, alignedSelEnd.value)
+  alignedCallColor.value = ''
+  alignedCallTextTouched.value = false
+}
+
+function handleAlignedCharTap(line: LyricLine, start: number, end: number): void {
+  if (alignedAnchorStart.value === null) {
+    alignedAnchorStart.value = start
+    alignedSelStart.value = start
+    alignedSelEnd.value = end
+  } else if (alignedAnchorStart.value === start && alignedSelStart.value === start && alignedSelEnd.value === end) {
+    alignedSelStart.value = start
+    alignedSelEnd.value = end
+  } else {
+    const minStart = Math.min(alignedAnchorStart.value, start)
+    const chars = lyricCharOffsets(line.text.original)
+    const anchorEnd = chars.find((c) => c.start === alignedAnchorStart.value)?.end ?? alignedAnchorStart.value + 1
+    const maxEnd = Math.max(anchorEnd, end)
+    alignedSelStart.value = minStart
+    alignedSelEnd.value = maxEnd
+    alignedAnchorStart.value = null
+  }
+  if (!alignedCallTextTouched.value || !alignedCallText.value.trim()) {
+    alignedCallText.value = line.text.original.slice(alignedSelStart.value, alignedSelEnd.value)
+  }
+}
+
+function submitAlignedCall(line: LyricLine): void {
+  const start = alignedSelStart.value
+  const end = alignedSelEnd.value
+  if (end <= start) return
+  const text = alignedCallText.value.trim() || line.text.original.slice(start, end).trim()
+  if (!text) return
+  store.upsertAlignedCall(line.id, {
+    start,
+    end,
+    text,
+    color: alignedCallColor.value || undefined
+  })
+  alignedPickerLineId.value = null
+  if (store.autoAdvanceOnTag) {
+    store.stepActiveLine(1)
   }
 }
 
@@ -402,6 +497,15 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
           <label class="inline-flex items-center gap-2 text-xs font-semibold cursor-pointer pr-1">
             <span :style="{ color: 'var(--md-on-surface-variant)' }">跟随滚动</span>
             <PrismSwitch v-model="store.followPlayback" label="跟随播放进度滚动" />
+          </label>
+
+          <label class="inline-flex items-center gap-2 text-xs font-semibold cursor-pointer pr-1">
+            <span :style="{ color: 'var(--md-on-surface-variant)' }">打完跳下句</span>
+            <PrismSwitch
+              v-model="store.autoAdvanceOnTag"
+              data-testid="auto-advance-switch"
+              label="打标后自动跳转下一句"
+            />
           </label>
 
           <button
@@ -908,6 +1012,17 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
                 "
               >
                 <button
+                  v-if="canMergeWithNext(item.line.id)"
+                  type="button"
+                  :data-testid="`merge-next-line-${item.line.id}`"
+                  @click.stop="store.mergeWithNextLine(item.line.id)"
+                  class="px-2.5 py-1 rounded-full text-[11px] font-semibold prism-press whitespace-nowrap shrink-0"
+                  :style="{ backgroundColor: 'var(--md-tertiary-container)', color: 'var(--md-on-tertiary-container)' }"
+                  title="将本句与下一句歌词合并为一行"
+                >
+                  合并下句
+                </button>
+                <button
                   v-if="store.activeLineId === item.line.id && getLineKind(item.line) !== 'outro'"
                   type="button"
                   data-testid="insert-interlude-after-active"
@@ -951,7 +1066,7 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
 
           <!-- Attached Call Badges + Inline Shout Chip -->
           <div
-            v-if="item.line.calls.length > 0 || item.line.customShout || store.activeLineId === item.line.id"
+            v-if="item.line.calls.length > 0 || Boolean(getUnalignedCustomShout(item.line)) || store.activeLineId === item.line.id"
             class="mb-2 space-y-2"
           >
             <div class="flex flex-wrap items-center gap-1.5">
@@ -967,14 +1082,14 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
               </template>
 
               <span
-                v-if="item.line.customShout && store.activeLineId !== item.line.id"
+                v-if="getUnalignedCustomShout(item.line) && store.activeLineId !== item.line.id"
                 class="px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0"
                 :style="{
                   backgroundColor: 'var(--md-tertiary-container)',
                   color: 'var(--md-on-tertiary-container)'
                 }"
               >
-                {{ item.line.customShout }}
+                {{ getUnalignedCustomShout(item.line) }}
               </span>
 
               <span
@@ -1039,18 +1154,15 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
             </div>
           </div>
 
-          <!-- Lyrics Multi-Layer Display -->
+          <!-- Lyrics Multi-Layer Display (supports word-aligned Call cues above target spans) -->
           <div class="space-y-0.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="min-w-0 flex-1">
-                <div
-                  v-if="store.displayLayers.showRuby && item.line.text.ruby"
-                  class="lyric-ruby text-[15px] font-semibold break-words"
-                  v-html="item.line.text.ruby"
+              <div class="min-w-0 flex-1 text-[15px] font-semibold break-words">
+                <AlignedLyricText
+                  :line="item.line"
+                  :show-ruby="store.displayLayers.showRuby"
+                  variant="editor"
                 />
-                <div v-else class="text-[15px] font-semibold break-words">
-                  {{ item.line.text.original }}
-                </div>
               </div>
 
               <span
@@ -1203,6 +1315,141 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
               placeholder="输入自定义 Mix / 口上..."
               class="flex-1 min-w-0 bg-transparent text-xs font-semibold focus:outline-none placeholder:opacity-50"
             />
+          </div>
+
+          <!-- Word-Aligned Call Cue Editor -->
+          <div
+            v-if="store.activeLineId === item.line.id && !isSectionLine(item.line) && item.line.text.original.length > 0"
+            class="mt-2 pt-2 border-t space-y-2"
+            :style="{ borderColor: 'var(--md-outline-variant)' }"
+            @click.stop
+          >
+            <div class="flex flex-wrap items-center justify-between gap-1.5">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[11px] font-bold shrink-0" :style="{ color: 'var(--md-primary)' }">
+                  CALL 词对位
+                </span>
+                <span
+                  v-for="cue in item.line.alignedCalls ?? []"
+                  :key="cue.id"
+                  :data-testid="`aligned-call-chip-${cue.id}`"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
+                  :style="
+                    cue.color
+                      ? { backgroundColor: cue.color, color: '#FFFFFF' }
+                      : { backgroundColor: 'var(--md-tertiary-container)', color: 'var(--md-on-tertiary-container)' }
+                  "
+                >
+                  <span>{{ item.line.text.original.slice(cue.start, cue.end) }} → {{ cue.text }}</span>
+                  <button
+                    type="button"
+                    @click.stop="store.removeAlignedCall(item.line.id, cue.id)"
+                    class="ml-0.5 opacity-75 hover:opacity-100"
+                    title="移除该词对位 Call"
+                  >
+                    ×
+                  </button>
+                </span>
+                <span
+                  v-for="autoCue in getLineAutoAlignedCues(item.line)"
+                  :key="autoCue.id"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                  :style="{
+                    borderColor: 'var(--md-outline-variant)',
+                    color: 'var(--md-on-surface-variant)'
+                  }"
+                >
+                  {{ autoCue.text }} (自动对位)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                :data-testid="`toggle-aligned-picker-${item.line.id}`"
+                @click.stop="openAlignedPicker(item.line)"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-dashed text-[11px] font-semibold prism-press shrink-0"
+                :style="{
+                  borderColor: 'var(--md-primary)',
+                  color: 'var(--md-primary)'
+                }"
+              >
+                <Plus class="w-3 h-3" />
+                <span>{{ alignedPickerLineId === item.line.id ? '收起对位' : '对位 Call' }}</span>
+              </button>
+            </div>
+
+            <div
+              v-if="alignedPickerLineId === item.line.id"
+              :data-testid="`aligned-picker-panel-${item.line.id}`"
+              class="p-2.5 rounded-2xl border space-y-2"
+              :style="{
+                backgroundColor: 'var(--fc-block)',
+                borderColor: 'var(--md-outline-variant)'
+              }"
+            >
+              <div class="text-[11px] opacity-75">
+                点选起止字符锁定歌词片段，Call 将居中显示在该片段正上方：
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <button
+                  v-for="(ch, cIdx) in lyricCharOffsets(item.line.text.original)"
+                  :key="cIdx"
+                  type="button"
+                  @click.stop="handleAlignedCharTap(item.line, ch.start, ch.end)"
+                  class="min-w-[24px] h-7 px-1.5 rounded-lg text-xs font-bold transition prism-press"
+                  :style="
+                    ch.start >= alignedSelStart && ch.end <= alignedSelEnd
+                      ? { backgroundColor: 'var(--md-primary)', color: 'var(--md-on-primary)' }
+                      : { backgroundColor: 'var(--fc-card)', color: 'var(--md-on-surface)' }
+                  "
+                >
+                  {{ ch.char === ' ' ? '␣' : ch.char }}
+                </button>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[11px] font-semibold opacity-75 shrink-0">
+                  已选：「{{ item.line.text.original.slice(alignedSelStart, alignedSelEnd) }}」
+                </span>
+                <input
+                  v-model="alignedCallText"
+                  @input="alignedCallTextTouched = true"
+                  type="text"
+                  placeholder="上方显示的 Call 内容"
+                  class="flex-1 min-w-[120px] px-2.5 py-1 text-xs rounded-xl border focus:outline-none"
+                  :style="{
+                    backgroundColor: 'var(--fc-card)',
+                    color: 'var(--md-on-surface)',
+                    borderColor: 'var(--md-outline-variant)'
+                  }"
+                  @keyup.enter="submitAlignedCall(item.line)"
+                />
+                <div class="flex items-center gap-1">
+                  <button
+                    v-for="clr in ALIGNED_CALL_COLORS"
+                    :key="clr || 'default'"
+                    type="button"
+                    @click="alignedCallColor = clr"
+                    class="w-4 h-4 rounded-full border transition"
+                    :style="{
+                      backgroundColor: clr || 'var(--md-tertiary-container)',
+                      borderColor: alignedCallColor === clr ? 'var(--md-on-surface)' : 'transparent',
+                      transform: alignedCallColor === clr ? 'scale(1.18)' : 'scale(1)'
+                    }"
+                    :title="clr || '默认配色'"
+                  />
+                </div>
+                <button
+                  type="button"
+                  :data-testid="`submit-aligned-call-${item.line.id}`"
+                  @click.stop="submitAlignedCall(item.line)"
+                  class="px-3 py-1 rounded-xl text-xs font-semibold prism-press shrink-0"
+                  :style="{ backgroundColor: 'var(--md-primary)', color: 'var(--md-on-primary)' }"
+                >
+                  添加对位
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Inline GT Highlight & Timing Cue Editor -->

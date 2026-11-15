@@ -2,7 +2,9 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useCallbookStore } from '../stores/callbookStore'
 import type { LyricLine } from '../types/callbook'
+import { getUnalignedCustomShout } from '../utils/alignedCalls'
 import { getLineKind, isSectionLine, SECTION_TITLES, type SectionKind } from '../utils/sectionDetector'
+import AlignedLyricText from './AlignedLyricText.vue'
 import CallBadge from './CallBadge.vue'
 
 const MIN_CALL_COL_WIDTH = 124
@@ -231,7 +233,7 @@ defineExpose({
           <!-- Right column: GT 警报 + Mix/口上 + Lyric/Section + trailing 尾句上升气流 -->
           <div class="flex-1 min-w-0">
             <div
-              v-if="store.getAlertForLine(line.id) || line.customShout?.trim()"
+              v-if="store.getAlertForLine(line.id) || Boolean(getUnalignedCustomShout(line))"
               class="flex items-center gap-1.5 mb-1"
               :class="exportLayout ? 'flex-nowrap' : 'flex-wrap'"
             >
@@ -258,32 +260,31 @@ defineExpose({
               </template>
 
               <span
-                v-if="line.customShout?.trim()"
+                v-if="getUnalignedCustomShout(line)"
                 data-testid="quickref-mix-pill"
                 class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-extrabold whitespace-nowrap w-max shrink-0"
               >
-                {{ line.customShout.trim() }}
+                {{ getUnalignedCustomShout(line) }}
               </span>
             </div>
 
-            <!-- Primary line (Section title OR lyric/ruby) + trailing 尾句上升气流 -->
+            <!-- Primary line (Section title OR word-aligned lyric/ruby) + trailing 尾句上升气流 -->
             <div
               data-testid="quickref-lyric-primary"
               class="flex items-center gap-2"
               :class="exportLayout ? 'flex-nowrap' : 'flex-wrap'"
             >
               <div
-                v-if="!isSectionLine(line) && store.displayLayers.showRuby && line.text.ruby"
-                class="lyric-ruby text-sm font-semibold text-slate-900"
-                :class="exportLayout ? 'whitespace-nowrap' : 'break-words'"
-                v-html="line.text.ruby"
-              />
-              <div
-                v-else
                 class="text-sm font-semibold text-slate-900"
                 :class="exportLayout ? 'whitespace-nowrap' : 'break-words'"
               >
-                {{ isSectionLine(line) ? sectionDisplayTitle(line) : line.text.original }}
+                <AlignedLyricText
+                  :line="line"
+                  :show-ruby="store.displayLayers.showRuby"
+                  :display-text-override="isSectionLine(line) ? sectionDisplayTitle(line) : undefined"
+                  :export-layout="exportLayout"
+                  variant="quickref"
+                />
               </div>
 
               <span

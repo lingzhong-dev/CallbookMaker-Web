@@ -24,7 +24,6 @@ const store = useCallbookStore()
 const themeStore = useThemeStore()
 const uiStore = useUiStore()
 const showTagTray = ref(true)
-const autoAdvanceOnTag = ref(false)
 let longPressTimer: number | null = null
 
 const destinations: Array<{ id: NavRoute; label: string; icon: typeof LayoutDashboard }> = [
@@ -71,7 +70,7 @@ function isPresetActive(presetId: string): boolean {
 function handleThumbTag(presetId: string): void {
   triggerCallPresetForLine({
     presetId,
-    autoAdvance: autoAdvanceOnTag.value
+    autoAdvance: store.autoAdvanceOnTag
   })
 }
 
@@ -200,10 +199,10 @@ function handleToggleTailUpdraft(): void {
           <button
             type="button"
             data-testid="mobile-auto-advance"
-            @click="autoAdvanceOnTag = !autoAdvanceOnTag"
+            @click="store.autoAdvanceOnTag = !store.autoAdvanceOnTag"
             class="px-2.5 py-1 rounded-full border font-semibold transition prism-press"
             :style="
-              autoAdvanceOnTag
+              store.autoAdvanceOnTag
                 ? {
                     borderColor: 'var(--md-primary)',
                     backgroundColor: 'var(--md-primary-container)',

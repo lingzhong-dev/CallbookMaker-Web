@@ -2,8 +2,10 @@
 import { nextTick, watch } from 'vue'
 import { AlertTriangle, RotateCcw, RotateCw, X } from 'lucide-vue-next'
 import { useCallbookStore } from '../stores/callbookStore'
+import { getUnalignedCustomShout } from '../utils/alignedCalls'
 import { formatGapSec, getLineKind, isSectionLine, sectionKindLabel } from '../utils/sectionDetector'
 import { formatMsToClock } from '../utils/time'
+import AlignedLyricText from './AlignedLyricText.vue'
 import CallBadge from './CallBadge.vue'
 import ScallopedOrbButton from './prism/ScallopedOrbButton.vue'
 import WavyProgressBar from './prism/WavyProgressBar.vue'
@@ -237,25 +239,22 @@ function practiceCardStyle(lineId: string): Record<string, string | number> {
                 />
               </template>
               <span
-                v-if="item.line.customShout"
+                v-if="getUnalignedCustomShout(item.line)"
                 class="px-3.5 py-1 rounded-full bg-rose-600 text-white text-sm sm:text-base font-black tracking-wide"
               >
-                {{ item.line.customShout }}
+                {{ getUnalignedCustomShout(item.line) }}
               </span>
             </div>
 
             <div
-              v-if="store.displayLayers.showRuby && item.line.text.ruby"
-              class="lyric-ruby font-extrabold tracking-wide text-white"
-              :class="store.playingLineId === item.line.id ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-3xl'"
-              v-html="item.line.text.ruby"
-            />
-            <div
-              v-else
               class="font-extrabold tracking-wide text-white"
               :class="store.playingLineId === item.line.id ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-3xl'"
             >
-              {{ item.line.text.original }}
+              <AlignedLyricText
+                :line="item.line"
+                :show-ruby="store.displayLayers.showRuby"
+                variant="practice"
+              />
             </div>
 
             <div
