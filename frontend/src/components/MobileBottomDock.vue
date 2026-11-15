@@ -16,6 +16,8 @@ import {
 import { useCallbookStore } from '../stores/callbookStore'
 import { useThemeStore } from '../stores/themeStore'
 import { useUiStore, type NavRoute } from '../stores/uiStore'
+import type { CallPreset } from '../types/callbook'
+import { openCustomPresetContextMenu, triggerCallPresetForLine } from '../utils/callTagActions'
 import { formatMsToClock } from '../utils/time'
 
 const store = useCallbookStore()
@@ -23,6 +25,7 @@ const themeStore = useThemeStore()
 const uiStore = useUiStore()
 const showTagTray = ref(true)
 const autoAdvanceOnTag = ref(false)
+let longPressTimer: number | null = null
 
 const destinations: Array<{ id: NavRoute; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'dashboard', label: '控制台', icon: LayoutDashboard },
@@ -66,7 +69,28 @@ function isPresetActive(presetId: string): boolean {
 }
 
 function handleThumbTag(presetId: string): void {
-  store.quickTagActiveLine(presetId, autoAdvanceOnTag.value)
+  triggerCallPresetForLine({
+    presetId,
+    autoAdvance: autoAdvanceOnTag.value
+  })
+}
+
+function startCustomLongPress(e: TouchEvent, preset: CallPreset): void {
+  if (preset.builtIn) return
+  cancelCustomLongPress()
+  const touch = e.touches[0]
+  if (!touch) return
+  longPressTimer = window.setTimeout(() => {
+    openCustomPresetContextMenu({ clientX: touch.clientX, clientY: touch.clientY }, preset)
+    longPressTimer = null
+  }, 500)
+}
+
+function cancelCustomLongPress(): void {
+  if (longPressTimer !== null) {
+    window.clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
 }
 
 function isTailUpdraftActive(): boolean {
@@ -210,6 +234,11 @@ function handleToggleTailUpdraft(): void {
             :key="'mobile-' + preset.id"
             type="button"
             @click="handleThumbTag(preset.id)"
+            @contextmenu="(e) => openCustomPresetContextMenu(e, preset)"
+            @touchstart.passive="(e) => startCustomLongPress(e, preset)"
+            @touchend="cancelCustomLongPress"
+            @touchmove="cancelCustomLongPress"
+            @touchcancel="cancelCustomLongPress"
             :style="{
               backgroundColor: isPresetActive(preset.id) ? preset.color : 'var(--fc-tone)',
               color: isPresetActive(preset.id) ? '#FFFFFF' : 'var(--md-on-surface)',

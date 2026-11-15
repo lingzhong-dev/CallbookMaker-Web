@@ -393,7 +393,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     return bpm
   }
 
-  function toggleLineCall(lineId: string, presetId: string): boolean {
+  function toggleLineCall(lineId: string, presetId: string, suffix?: string): boolean {
     const line = project.value.lines.find((l) => l.id === lineId)
     if (!line) return false
     const idx = line.calls.findIndex((c) => c.presetId === presetId)
@@ -402,7 +402,8 @@ export const useCallbookStore = defineStore('callbook', () => {
       schedulePersist()
       return false
     }
-    line.calls.push({ presetId })
+    const cleanSuffix = suffix?.trim()
+    line.calls.push(cleanSuffix ? { presetId, suffix: cleanSuffix } : { presetId })
     schedulePersist()
     return true
   }
@@ -499,17 +500,18 @@ export const useCallbookStore = defineStore('callbook', () => {
     return sortedLines.value[0]
   }
 
-  function quickTagActiveLine(presetId: string, autoAdvance = false): void {
+  function quickTagActiveLine(presetId: string, autoAdvance = false, suffix?: string): boolean {
     const targetLine = resolveLineForQuickTag()
     if (!targetLine) {
       setStatus('暂无可打标的歌词行')
-      return
+      return false
     }
     activeLineId.value = targetLine.id
-    const added = toggleLineCall(targetLine.id, presetId)
+    const added = toggleLineCall(targetLine.id, presetId, suffix)
     if (added && autoAdvance) {
       stepActiveLine(1)
     }
+    return added
   }
 
   function toggleLineGtAlert(lineId?: string, callTimingCue?: string): GtAlert | null {
@@ -820,12 +822,48 @@ export const useCallbookStore = defineStore('callbook', () => {
     return preset
   }
 
+  function updateCustomPreset(
+    presetId: string,
+    patch: {
+      label: string
+      color: string
+      category?: CallCategory
+      shortcut?: string
+    }
+  ): boolean {
+    const idx = customPresets.value.findIndex((p) => p.id === presetId)
+    if (idx < 0) return false
+    const existing = customPresets.value[idx]
+    if (existing.builtIn) return false
+    const cleanLabel = patch.label.trim()
+    if (!cleanLabel) return false
+    const cleanColor = /^#[0-9a-fA-F]{6}$/.test(patch.color.trim())
+      ? patch.color.trim().toUpperCase()
+      : existing.color
+    customPresets.value[idx] = {
+      ...existing,
+      label: cleanLabel,
+      color: cleanColor,
+      category: patch.category ?? existing.category,
+      shortcut:
+        patch.shortcut !== undefined
+          ? patch.shortcut.trim().toUpperCase().slice(0, 2)
+          : existing.shortcut
+    }
+    schedulePersist()
+    setStatus(`已更新自定义标签「${cleanLabel}」`)
+    return true
+  }
+
   function deleteCustomPreset(presetId: string): void {
+    const target = customPresets.value.find((p) => p.id === presetId)
+    if (!target || target.builtIn) return
     customPresets.value = customPresets.value.filter((p) => p.id !== presetId)
     for (const line of project.value.lines) {
       line.calls = line.calls.filter((c) => c.presetId !== presetId)
     }
     schedulePersist()
+    setStatus(`已删除自定义标签「${target.label}」`)
   }
 
   function stepActiveLine(direction: -1 | 1): void {
@@ -1050,7 +1088,11 @@ export const useCallbookStore = defineStore('callbook', () => {
 
   function exportProjectJson(): void {
     const clean = sanitizeProjectForJsonExport(project.value)
-    const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' })
+    const payload =
+      customPresets.value.length > 0
+        ? { ...clean, customPresets: customPresets.value }
+        : clean
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -1063,7 +1105,7 @@ export const useCallbookStore = defineStore('callbook', () => {
 
   function importProjectJson(rawJson: string): boolean {
     try {
-      const parsed = JSON.parse(rawJson) as CallProject
+      const parsed = JSON.parse(rawJson) as CallProject & { customPresets?: CallPreset[] }
       if (!parsed?.meta || !Array.isArray(parsed.lines) || !Array.isArray(parsed.alerts)) {
         setStatus('JSON 工程格式无效：缺少 meta / lines / alerts 字段')
         return false
@@ -1072,6 +1114,27 @@ export const useCallbookStore = defineStore('callbook', () => {
       isDetectingBpm.value = false
       const normalized = normalizeCallProject(parsed)
       project.value = normalized
+      if (Array.isArray(parsed.customPresets) && parsed.customPresets.length > 0) {
+        const merged = [...customPresets.value]
+        for (const incoming of parsed.customPresets) {
+          if (!incoming?.id || incoming.builtIn) continue
+          const idx = merged.findIndex((p) => p.id === incoming.id)
+          const sanitized: CallPreset = {
+            id: String(incoming.id),
+            label: String(incoming.label || 'Call').trim() || 'Call',
+            color: String(incoming.color || '#EC4899'),
+            category: incoming.category || 'compound',
+            shortcut: String(incoming.shortcut || '').trim().toUpperCase().slice(0, 2),
+            builtIn: false
+          }
+          if (idx >= 0) {
+            merged[idx] = sanitized
+          } else {
+            merged.push(sanitized)
+          }
+        }
+        customPresets.value = merged
+      }
       knownAudioDurationMs.value = normalized.meta.platform === 'synthetic' ? 48000 : 0
       activeLineId.value = normalized.lines[0]?.id ?? null
       const maxEnd = normalized.lines.reduce((acc, l) => Math.max(acc, l.endTimeMs), 0)
@@ -1282,6 +1345,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     stampLineToCurrentTime,
     deleteLyricLine,
     addCustomPreset,
+    updateCustomPreset,
     deleteCustomPreset,
     stepActiveLine,
     loadDemoProject,

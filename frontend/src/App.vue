@@ -15,6 +15,7 @@ import { useCallbookStore } from './stores/callbookStore'
 import { useSiteEditStore } from './stores/siteEditStore'
 import { useThemeStore } from './stores/themeStore'
 import { useUiStore } from './stores/uiStore'
+import { triggerCallPresetForLine } from './utils/callTagActions'
 
 const store = useCallbookStore()
 const editStore = useSiteEditStore()
@@ -66,6 +67,18 @@ function isTypingElement(target: EventTarget | null): boolean {
 
 function handleKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
+    if (uiStore.editPresetDialog.open) {
+      uiStore.closeEditPresetDialog()
+      return
+    }
+    if (uiStore.presetContextMenu.open) {
+      uiStore.closePresetContextMenu()
+      return
+    }
+    if (uiStore.singAlongPrompt.open) {
+      uiStore.closeSingAlongPrompt()
+      return
+    }
     if (uiStore.savePromptDialog?.open) {
       uiStore.savePromptDialog.onCancel?.() ?? uiStore.closeSavePrompt()
       return
@@ -132,7 +145,10 @@ function handleKeyDown(e: KeyboardEvent): void {
   const matched = store.allPresets.find((p) => p.shortcut.toUpperCase() === pressed)
   if (matched && store.activeLineId) {
     e.preventDefault()
-    store.toggleLineCall(store.activeLineId, matched.id)
+    triggerCallPresetForLine({
+      lineId: store.activeLineId,
+      presetId: matched.id
+    })
   }
 }
 

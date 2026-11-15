@@ -106,6 +106,93 @@ export const useUiStore = defineStore('flclashUi', () => {
     savePromptDialog.value = null
   }
 
+  const singAlongPrompt = ref<{
+    open: boolean
+    lineId: string
+    initialValue: string
+    tagIndex: number | null
+    autoAdvance: boolean
+    onConfirm?: (text: string) => void
+  }>({
+    open: false,
+    lineId: '',
+    initialValue: '',
+    tagIndex: null,
+    autoAdvance: false
+  })
+
+  function openSingAlongPrompt(opts: {
+    lineId: string
+    initialValue?: string
+    tagIndex?: number | null
+    autoAdvance?: boolean
+    onConfirm: (text: string) => void
+  }): void {
+    singAlongPrompt.value = {
+      open: true,
+      lineId: opts.lineId,
+      initialValue: opts.initialValue ?? '',
+      tagIndex: opts.tagIndex ?? null,
+      autoAdvance: opts.autoAdvance ?? false,
+      onConfirm: opts.onConfirm
+    }
+  }
+
+  function closeSingAlongPrompt(): void {
+    singAlongPrompt.value.open = false
+    singAlongPrompt.value.onConfirm = undefined
+  }
+
+  const presetContextMenu = ref<{
+    open: boolean
+    presetId: string
+    x: number
+    y: number
+  }>({
+    open: false,
+    presetId: '',
+    x: 0,
+    y: 0
+  })
+
+  function openPresetContextMenu(presetId: string, x: number, y: number): void {
+    presetContextMenu.value = {
+      open: true,
+      presetId,
+      x,
+      y
+    }
+  }
+
+  function closePresetContextMenu(): void {
+    presetContextMenu.value.open = false
+  }
+
+  const editPresetDialog = ref<{
+    open: boolean
+    presetId: string
+    label: string
+    color: string
+  }>({
+    open: false,
+    presetId: '',
+    label: '',
+    color: '#EC4899'
+  })
+
+  function openEditPresetDialog(opts: { presetId: string; label: string; color: string }): void {
+    editPresetDialog.value = {
+      open: true,
+      presetId: opts.presetId,
+      label: opts.label,
+      color: opts.color
+    }
+  }
+
+  function closeEditPresetDialog(): void {
+    editPresetDialog.value.open = false
+  }
+
   return {
     activeRoute,
     showSourceModal,
@@ -113,6 +200,9 @@ export const useUiStore = defineStore('flclashUi', () => {
     showArchiveMenu,
     confirmDialog,
     savePromptDialog,
+    singAlongPrompt,
+    presetContextMenu,
+    editPresetDialog,
     beatPulseSeries,
     callDensitySeries,
     pushBeatSample,
@@ -120,6 +210,12 @@ export const useUiStore = defineStore('flclashUi', () => {
     openConfirm,
     closeConfirm,
     openSavePrompt,
-    closeSavePrompt
+    closeSavePrompt,
+    openSingAlongPrompt,
+    closeSingAlongPrompt,
+    openPresetContextMenu,
+    closePresetContextMenu,
+    openEditPresetDialog,
+    closeEditPresetDialog
   }
 })

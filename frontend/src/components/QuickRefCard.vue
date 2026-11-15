@@ -64,7 +64,7 @@ async function measureCallColumnWidth(): Promise<number> {
     }
   })
 
-  callColWidthPx.value = props.exportLayout ? maxWidth : Math.min(240, maxWidth)
+  callColWidthPx.value = props.exportLayout ? maxWidth : Math.min(260, maxWidth)
   return callColWidthPx.value
 }
 

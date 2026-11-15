@@ -9,10 +9,15 @@ import {
   Sparkles,
   Trash2
 } from 'lucide-vue-next'
-import { CATEGORY_LABELS } from '../data/presets'
+import { CATEGORY_LABELS, SING_ALONG_PRESET_ID } from '../data/presets'
 import { useCallbookStore } from '../stores/callbookStore'
 import { useUiStore } from '../stores/uiStore'
-import type { CallCategory, LyricLine, LyricLineKind } from '../types/callbook'
+import type { CallCategory, CallPreset, LyricLine, LyricLineKind } from '../types/callbook'
+import {
+  openCustomPresetContextMenu,
+  requestDeleteCustomPresetWithConfirm,
+  triggerCallPresetForLine
+} from '../utils/callTagActions'
 import {
   SECTION_TITLES,
   formatGapSec,
@@ -46,7 +51,8 @@ const newPresetLabel = ref('')
 const inlinePresetLabel = ref('')
 const newPresetColor = ref('#EC4899')
 const newPresetCategory = ref<CallCategory>('compound')
-const newPresetShortcut = ref('9')
+const newPresetShortcut = ref('Q')
+let presetLongPressTimer: number | null = null
 
 const editingTagKey = ref<string | null>(null)
 const editingTagSuffix = ref('')
@@ -184,7 +190,29 @@ function isPresetActiveOnCurrentLine(presetId: string): boolean {
 }
 
 function handleToolbarPresetClick(presetId: string): void {
-  store.quickTagActiveLine(presetId, false)
+  triggerCallPresetForLine({ presetId })
+}
+
+function handleInlinePresetClick(lineId: string, presetId: string): void {
+  triggerCallPresetForLine({ lineId, presetId })
+}
+
+function startPresetLongPress(e: TouchEvent, preset: CallPreset): void {
+  if (preset.builtIn) return
+  cancelPresetLongPress()
+  const touch = e.touches[0]
+  if (!touch) return
+  presetLongPressTimer = window.setTimeout(() => {
+    openCustomPresetContextMenu({ clientX: touch.clientX, clientY: touch.clientY }, preset)
+    presetLongPressTimer = null
+  }, 500)
+}
+
+function cancelPresetLongPress(): void {
+  if (presetLongPressTimer !== null) {
+    window.clearTimeout(presetLongPressTimer)
+    presetLongPressTimer = null
+  }
 }
 
 function handleCreatePreset(targetLineId?: string): void {
@@ -214,6 +242,20 @@ function activeEditingTagIndexForLine(lineId: string): number | null {
 }
 
 function openTagEditor(lineId: string, tagIndex: number, currentSuffix?: string): void {
+  const line = store.project.lines.find((l) => l.id === lineId)
+  const tag = line?.calls[tagIndex]
+  if (tag?.presetId === SING_ALONG_PRESET_ID) {
+    editingTagKey.value = null
+    uiStore.openSingAlongPrompt({
+      lineId,
+      tagIndex,
+      initialValue: currentSuffix || '',
+      onConfirm: (text: string) => {
+        store.updateLineCallSuffix(lineId, tagIndex, text)
+      }
+    })
+    return
+  }
   const key = `${lineId}:${tagIndex}`
   if (editingTagKey.value === key) {
     editingTagKey.value = null
@@ -578,7 +620,7 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
         :style="{ backgroundColor: 'var(--fc-block)', color: 'var(--md-on-surface-variant)' }"
       >
         <span><b>Space</b> 播放/暂停</span>
-        <span><b>1~8</b> 切换军 Call</span>
+        <span><b>1~0</b> 切换军 Call</span>
         <span><b>G</b> 切换当前行 GT 警报</span>
         <span><b>↑/↓</b> 切行 · <b>←/→</b> 跳 2s</span>
         <span><b>F</b> 现场演练</span>
@@ -589,6 +631,13 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
         <div
           v-for="preset in store.allPresets"
           :key="preset.id"
+          :data-testid="`palette-preset-${preset.id}`"
+          @contextmenu="(e) => openCustomPresetContextMenu(e, preset)"
+          @touchstart.passive="(e) => startPresetLongPress(e, preset)"
+          @touchend="cancelPresetLongPress"
+          @touchmove="cancelPresetLongPress"
+          @touchcancel="cancelPresetLongPress"
+          :title="preset.builtIn ? undefined : '右键修改名称/颜色或删除'"
           class="inline-flex items-center rounded-full border transition prism-press"
           :style="
             isPresetActiveOnCurrentLine(preset.id)
@@ -624,9 +673,9 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
           <button
             v-if="!preset.builtIn"
             type="button"
-            @click="store.deleteCustomPreset(preset.id)"
+            @click.stop="requestDeleteCustomPresetWithConfirm(preset)"
             class="pr-2.5 text-xs opacity-60 hover:opacity-100"
-            title="删除自定义标签"
+            title="删除自定义标签（右键可改名/改色）"
           >
             ×
           </button>
@@ -913,6 +962,7 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
                   :suffix="tag.suffix"
                   interactive
                   @click="openTagEditor(item.line.id, idx, tag.suffix)"
+                  @contextmenu="(e) => openCustomPresetContextMenu(e, store.presetMap.get(tag.presetId)!)"
                 />
               </template>
 
@@ -931,7 +981,7 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
                 v-if="item.line.calls.length === 0 && store.activeLineId === item.line.id"
                 class="text-[11px] opacity-65"
               >
-                <span class="hidden sm:inline">按键盘 1~8 或点击上方 / 下方 Call 标签快速打标</span>
+                <span class="hidden sm:inline">按键盘 1~0 或点击上方 / 下方 Call 标签快速打标</span>
                 <span class="sm:hidden">轻触下方 Call 胶囊或底部速标栏快速打标</span>
               </span>
             </div>
@@ -1068,7 +1118,13 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
                 v-for="preset in store.allPresets"
                 :key="preset.id"
                 type="button"
-                @click="store.toggleLineCall(item.line.id, preset.id)"
+                @click="handleInlinePresetClick(item.line.id, preset.id)"
+                @contextmenu="(e) => openCustomPresetContextMenu(e, preset)"
+                @touchstart.passive="(e) => startPresetLongPress(e, preset)"
+                @touchend="cancelPresetLongPress"
+                @touchmove="cancelPresetLongPress"
+                @touchcancel="cancelPresetLongPress"
+                :title="preset.builtIn ? undefined : '右键修改名称/颜色或删除'"
                 class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition prism-press"
                 :style="
                   isPresetActiveOnLine(item.line.id, preset.id)

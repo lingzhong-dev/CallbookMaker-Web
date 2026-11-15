@@ -3,6 +3,9 @@ import type { CallPreset } from '../types/callbook'
 // 内置默认军Call库（不可删，支持扩展自定义标签）：
 // 1. 前挥 (#EF4444)  2. 平敲 (#F59E0B)  3. 上升气流 (#8B5CF6)  4. 雨刷 (#06B6D4)
 // 5. 里打 (#10B981)  6. 里打hai (#059669)  7. 里跳 (#16A34A)  8. PPPH (#2563EB)
+// 9. 跟唱 (#EC4899)  0. 拍手 (#14B8A6)
+export const SING_ALONG_PRESET_ID = 'sing-along'
+
 export const DEFAULT_CALL_PRESETS: CallPreset[] = [
   {
     id: 'front-wave',
@@ -66,6 +69,22 @@ export const DEFAULT_CALL_PRESETS: CallPreset[] = [
     color: '#2563EB',
     category: 'build',
     shortcut: '8',
+    builtIn: true
+  },
+  {
+    id: 'sing-along',
+    label: '跟唱',
+    color: '#EC4899',
+    category: 'compound',
+    shortcut: '9',
+    builtIn: true
+  },
+  {
+    id: 'clap',
+    label: '拍手',
+    color: '#14B8A6',
+    category: 'downbeat',
+    shortcut: '0',
     builtIn: true
   }
 ]
