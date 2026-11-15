@@ -1,0 +1,365 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('/fonts/GoogleSans-BoldItalic.ttf') format('truetype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --fc-font-sans: 'Google Sans', 'Noto Sans SC', 'Noto Sans JP', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --md-primary: #0068ff;
+  --md-primary-rgb: 0, 104, 255;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d8e2ff;
+  --md-on-primary-container: #001a41;
+  --md-secondary: #535f70;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #d7e3f7;
+  --md-on-secondary-container: #101c2b;
+  --md-tertiary: #6b5778;
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: #f2daff;
+  --md-on-tertiary-container: #251431;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+  --md-success: #2e7d32;
+  --md-success-container: #c8e6c9;
+  --md-on-success-container: #1b5e20;
+  --md-warning: #ef6c00;
+  --md-warning-container: #ffe0b2;
+  --md-on-warning-container: #4e2600;
+  --md-outline: #74777f;
+  --md-outline-variant: #c4c6d0;
+  --md-surface: #fdfbff;
+  --md-surface-bright: #ffffff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f7f9fc;
+  --md-surface-container: #eff1f5;
+  --md-surface-container-high: #e8ecf2;
+  --md-surface-container-highest: #e1e6ee;
+  --md-on-surface: #1a1c1e;
+  --md-on-surface-variant: #44474f;
+  --md-inverse-surface: #2f3033;
+  --md-inverse-on-surface: #f1f0f4;
+  --fc-page: #eef1f6;
+  --fc-card: #ffffff;
+  --fc-card-rgb: 255, 255, 255;
+  --fc-block: #eef1f6;
+  --fc-inset: #e2e6ed;
+  --fc-tone: #edf1f8;
+  --fc-tone2: #e1e6f0;
+  --fc-series2: #5b7fff;
+  --fc-shadow-e1: 0 2px 6px rgba(0, 0, 0, 0.03), 0 18px 40px -10px rgba(0, 0, 0, 0.055);
+  --fc-shadow-e2: 0 4px 12px rgba(0, 0, 0, 0.045), 0 28px 56px -12px rgba(0, 0, 0, 0.09);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    background-color: var(--fc-page);
+    color: var(--md-on-surface);
+    font-family: var(--fc-font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    transition: background-color 220ms cubic-bezier(0.2, 0, 0, 1), color 220ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  *,
+  *::before,
+  *::after,
+  input,
+  button,
+  select,
+  textarea {
+    font-family: var(--fc-font-sans);
+  }
+
+  html[data-font-mode='google-sans-tabular'] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.font-mono {
+  font-family: var(--fc-font-sans) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* FlClash Prism UI Surface Tiers & Squircle Cards */
+.fc-page {
+  background-color: var(--fc-page);
+  color: var(--md-on-surface);
+}
+
+.fc-card {
+  background-color: var(--fc-card);
+  border-radius: 28px;
+  box-shadow: var(--fc-shadow-e1);
+  transition: background-color 220ms ease, box-shadow 220ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fc-card-interactive {
+  background-color: var(--fc-card);
+  border-radius: 28px;
+  box-shadow: var(--fc-shadow-e1);
+  transition: background-color 200ms ease, box-shadow 200ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fc-card-interactive:hover {
+  box-shadow: var(--fc-shadow-e2);
+  transform: translateY(-1px);
+}
+
+.fc-card-interactive:active {
+  transform: scale(0.988);
+}
+
+.fc-block {
+  background-color: var(--fc-block);
+  border-radius: 20px;
+}
+
+.fc-inset {
+  background-color: var(--fc-inset);
+  border-radius: 16px;
+}
+
+/* Liquid Glass effect modeled on prism_ui/lib/liquid_glass.dart */
+.fc-liquid-glass {
+  background-color: rgba(var(--fc-card-rgb), 0.72);
+  backdrop-filter: blur(26px) saturate(165%);
+  -webkit-backdrop-filter: blur(26px) saturate(165%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.14),
+    var(--fc-shadow-e2);
+}
+
+html.dark .fc-liquid-glass {
+  background-color: rgba(var(--fc-card-rgb), 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.05),
+    var(--fc-shadow-e2);
+}
+
+/* Material 3 Expressive Range Slider */
+input[type='range'].m3-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--fc-tone2);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type='range'].m3-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--md-primary);
+  border: 3px solid var(--fc-card);
+  box-shadow: 0 2px 6px rgba(var(--md-primary-rgb), 0.35);
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+input[type='range'].m3-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+input[type='range'].m3-slider::-moz-range-thumb {
+  width: 18px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--md-primary);
+  border: 3px solid var(--fc-card);
+  box-shadow: 0 2px 6px rgba(var(--md-primary-rgb), 0.35);
+}
+
+/* Elastic button press modeled on prism_ui/lib/press_surface.dart */
+.prism-press {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), filter 160ms ease, background-color 180ms ease;
+}
+
+.prism-press:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Native ruby furigana styling */
+.lyric-ruby {
+  line-height: 2.15;
+}
+
+.lyric-ruby ruby {
+  ruby-position: over;
+  ruby-align: center;
+  margin: 0 0.04em;
+}
+
+.lyric-ruby rt {
+  font-size: 0.56em;
+  line-height: 1.1;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.78;
+  user-select: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes gtAlertFlash {
+  0%,
+  100% {
+    background-color: #ef4444;
+    color: #ffffff;
+  }
+  50% {
+    background-color: #facc15;
+    color: #09090b;
+  }
+}
+
+.gt-alert-strobe {
+  animation: gtAlertFlash 0.55s steps(2, start) infinite;
+}
+
+/* Print / Vector PDF rules */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: var(--fc-font-sans) !important;
+  }
+
+  .print-only-sheet,
+  .print-only-sheet * {
+    font-family: var(--fc-font-sans) !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .lyric-ruby {
+    line-height: 2.25 !important;
+  }
+
+  .lyric-ruby rt {
+    font-size: 0.58em !important;
+    opacity: 0.85 !important;
+  }
+}

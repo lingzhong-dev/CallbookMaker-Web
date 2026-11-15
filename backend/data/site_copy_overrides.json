@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-14T15:24:59.120Z",
+  "entries": {
+    "header::h1::80cc86ca_13::0": {
+      "key": "header::h1::80cc86ca_13::0",
+      "original": "Live Call 控制台",
+      "value": "Callbook Maker",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:55:36.158Z"
+    },
+    "view:dashboard::span::0f986cd9_5::0": {
+      "key": "view:dashboard::span::0f986cd9_5::0",
+      "original": "控制台状态",
+      "value": "播放状态",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:55:46.379Z"
+    },
+    "view:dashboard::span::c2636bb0_5::0": {
+      "key": "view:dashboard::span::c2636bb0_5::0",
+      "original": "打标覆盖率",
+      "value": "编写覆盖率",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:56:06.433Z"
+    },
+    "sidebar::span::2d01fee0_3::0": {
+      "key": "sidebar::span::2d01fee0_3::0",
+      "original": "控制台",
+      "value": "主页",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:56:56.545Z"
+    },
+    "sidebar::span::2fde741a_5::0": {
+      "key": "sidebar::span::2fde741a_5::0",
+      "original": "速查卡导出",
+      "value": "导出",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:57:01.414Z"
+    },
+    "view:dashboard::div::befe3598_6::0": {
+      "key": "view:dashboard::div::befe3598_6::0",
+      "original": "速查卡与导出",
+      "value": "导出Callbook",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:57:28.802Z"
+    },
+    "dashboard:workspace::h3::bc94efbb_5::0": {
+      "key": "dashboard:workspace::h3::bc94efbb_5::0",
+      "original": "打标时间轴",
+      "value": "编写工作台",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:57:47.355Z"
+    },
+    "sidebar::div::00bbfa01_9::0": {
+      "key": "sidebar::div::00bbfa01_9::0",
+      "original": "Live Call",
+      "value": "Callbook Maker",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T13:59:57.916Z"
+    },
+    "header::h1::83e7ce07_9::0": {
+      "key": "header::h1::83e7ce07_9::0",
+      "original": "速查卡与多格式导出",
+      "value": "导出",
+      "route": "export",
+      "updatedAt": "2026-11-14T14:01:52.489Z"
+    },
+    "view:export::span::3d24f86e_11::0": {
+      "key": "view:export::span::3d24f86e_11::0",
+      "original": "生成 PNG 速查长图",
+      "value": "生成 PNG 长图",
+      "route": "export",
+      "updatedAt": "2026-11-14T14:01:59.067Z"
+    },
+    "view:export::p::0e612bad_45::0": {
+      "key": "view:export::p::0e612bad_45::0",
+      "original": "支持无水印高清 PNG、结构化 Excel 表、A4 矢量 PDF 与 JSON 工程备份",
+      "value": "支持导出长图，Excel和PDF格式",
+      "route": "export",
+      "updatedAt": "2026-11-14T14:02:26.522Z"
+    },
+    "view:export::span::031ad712_13::0": {
+      "key": "view:export::span::031ad712_13::0",
+      "original": "打印 / 导出矢量 PDF",
+      "value": "打印 / 导出 PDF",
+      "route": "export",
+      "updatedAt": "2026-11-14T14:02:34.662Z"
+    },
+    "view:export::h3::83e7ce07_9::0": {
+      "key": "view:export::h3::83e7ce07_9::0",
+      "original": "速查卡与多格式导出",
+      "value": "导出当前Callbook",
+      "route": "export",
+      "updatedAt": "2026-11-14T14:02:48.135Z"
+    },
+    "header::p::cadcfa81_63::0": {
+      "key": "header::p::cadcfa81_63::0",
+      "original": "M@GICAL☆CURE! LOVE ? SHOT! (feat. Hatsune Miku) · 189 BPM (4/4)",
+      "value": "为你的偶像写下Callbook吧！",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T14:06:17.164Z"
+    },
+    "sidebar::div::bee92294_12::0": {
+      "key": "sidebar::div::bee92294_12::0",
+      "original": "Prism Studio",
+      "value": "By 澪终",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T14:06:33.768Z"
+    },
+    "nav:底部导航::span::2d01fee0_3::0": {
+      "key": "nav:底部导航::span::2d01fee0_3::0",
+      "original": "控制台",
+      "value": "主页",
+      "route": "dashboard",
+      "updatedAt": "2026-11-14T15:24:57.911Z"
+    }
+  }
+}

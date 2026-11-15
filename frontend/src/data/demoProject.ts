@@ -1,0 +1,161 @@
+import type { CallProject } from '../types/callbook'
+
+// 100% 原创无版权演示曲目：配合 Web Audio API 实时合成的 175 BPM 电子鼓点音轨
+export function createDemoProject(): CallProject {
+  return {
+    meta: {
+      title: 'Starlight Overdrive (175 BPM 合成演练 Demo)',
+      artist: 'Synthetic Stage Unit · 无版权测试音轨',
+      platform: 'synthetic',
+      trackId: 'synthetic-175-demo',
+      audioUrl: '',
+      bpm: 175,
+      timeSignature: '4/4',
+      offsetMs: 0,
+      composer: 'SAWTOWNE',
+      lyricist: 'SAWTOWNE',
+      vocalist: '初音ミク',
+      tuner: '',
+      showTuner: false,
+      editorName: '',
+      editorNote: ''
+    },
+    alerts: [
+      {
+        id: 'gt-demo-1',
+        triggerTimeMs: 9600,
+        leadBeats: 4,
+        note: '吉他进场，4拍后进 PPPH',
+        targetLineId: 'demo-line-4',
+        callTimingCue: 'se-no'
+      },
+      {
+        id: 'gt-demo-2',
+        triggerTimeMs: 17820,
+        leadBeats: 4,
+        note: '副歌爆发段！准备全员前挥 ×4',
+        targetLineId: 'demo-line-7',
+        callTimingCue: 'hi hi hihihihi'
+      }
+    ],
+    lines: [
+      {
+        id: 'demo-line-1',
+        startTimeMs: 1370,
+        endTimeMs: 4110,
+        calls: [{ presetId: 'ura-uchi', suffix: '×4' }],
+        customShout: 'タイガー！ファイヤー！',
+        text: {
+          original: '夜空を見上げて 響けメロディ',
+          ruby: '<ruby>夜空<rt>よぞら</rt></ruby>を<ruby>見上<rt>みあ</rt></ruby>げて <ruby>響<rt>ひび</rt></ruby>けメロディ',
+          romaji: 'yozora wo miagete hibike merodi',
+          translation: '仰望夜空 让旋律回响吧'
+        }
+      },
+      {
+        id: 'demo-line-2',
+        startTimeMs: 4110,
+        endTimeMs: 6850,
+        calls: [{ presetId: 'ura-uchi-hai', suffix: '×4' }],
+        customShout: 'サイバー！ファイバー！',
+        text: {
+          original: '高鳴る鼓動が 今 始まる',
+          ruby: '<ruby>高鳴<rt>たかな</rt></ruby>る<ruby>鼓動<rt>こどう</rt></ruby>が <ruby>今<rt>いま</rt></ruby> <ruby>始<rt>はじ</rt></ruby>まる',
+          romaji: 'takanaru kodou ga ima hajimaru',
+          translation: '沸腾的心跳 此刻正式开启'
+        }
+      },
+      {
+        id: 'demo-line-3',
+        startTimeMs: 6850,
+        endTimeMs: 9600,
+        calls: [{ presetId: 'updraft' }],
+        customShout: 'ハイ！ハイ！ハイハイハイ！',
+        text: {
+          original: '光の中へ 駆け出そうよ',
+          ruby: '<ruby>光<rt>ひかり</rt></ruby>の<ruby>中<rt>なか</rt></ruby>へ <ruby>駆<rt>か</rt></ruby>け<ruby>出<rt>だ</rt></ruby>そうよ',
+          romaji: 'hikari no naka he kakedasou yo',
+          translation: '向着光芒之中 一起奔跑吧'
+        }
+      },
+      {
+        id: 'demo-line-4',
+        startTimeMs: 9600,
+        endTimeMs: 12340,
+        calls: [{ presetId: 'ppph', suffix: '×2' }],
+        customShout: 'オー！ハイ！オー！ハイ！',
+        text: {
+          original: '僕らの声で 未来を描こう',
+          ruby: '<ruby>僕<rt>ぼく</rt></ruby>らの<ruby>声<rt>こえ</rt></ruby>で <ruby>未来<rt>みらい</rt></ruby>を<ruby>描<rt>えが</rt></ruby>こう',
+          romaji: 'bokura no koe de mirai wo egakou',
+          translation: '用我们的声音 描绘出未来'
+        }
+      },
+      {
+        id: 'demo-line-5',
+        startTimeMs: 12340,
+        endTimeMs: 15080,
+        calls: [{ presetId: 'ppph', suffix: '×2' }, { presetId: 'ura-jump' }],
+        customShout: 'せーの！はいせーの！',
+        text: {
+          original: '手を伸ばしたら 届くはずさ',
+          ruby: '<ruby>手<rt>て</rt></ruby>を<ruby>伸<rt>の</rt></ruby>ばしたら <ruby>届<rt>とど</rt></ruby>くはずさ',
+          romaji: 'te wo nobashitara todoku hazu sa',
+          translation: '只要伸出双手 就一定能触及'
+        }
+      },
+      {
+        id: 'demo-line-6',
+        startTimeMs: 15080,
+        endTimeMs: 17820,
+        calls: [{ presetId: 'flat-chop', suffix: '加速' }],
+        customShout: 'フッフー！ふわふわ！',
+        text: {
+          original: '輝くステージ 夢の向こうへ',
+          ruby: '<ruby>輝<rt>かがや</rt></ruby>くステージ <ruby>夢<rt>ゆめ</rt></ruby>の<ruby>向<rt>む</rt></ruby>こうへ',
+          romaji: 'kagayaku suteeji yume no mukou he',
+          translation: '闪耀的舞台 去往梦想的彼岸'
+        }
+      },
+      {
+        id: 'demo-line-7',
+        startTimeMs: 17820,
+        endTimeMs: 20570,
+        calls: [{ presetId: 'front-wave', suffix: '全员' }],
+        customShout: 'オーーッ！オイ！オイ！',
+        text: {
+          original: '全力で叫べ 熱い想い',
+          ruby: '<ruby>全力<rt>ぜんりょく</rt></ruby>で<ruby>叫<rt>さけ</rt></ruby>べ <ruby>熱<rt>あつ</rt></ruby>い<ruby>想<rt>おも</rt></ruby>い',
+          romaji: 'zenryoku de sakebe atsui omoi',
+          translation: '全力呐喊吧 炽热的心意'
+        }
+      },
+      {
+        id: 'demo-line-8',
+        startTimeMs: 20570,
+        endTimeMs: 24680,
+        calls: [{ presetId: 'wiper', suffix: '×4' }, { presetId: 'front-wave' }],
+        customShout: 'ラストスパート！',
+        text: {
+          original: 'ひとつになる瞬間 忘れないで',
+          ruby: 'ひとつになる<ruby>瞬間<rt>しゅんかん</rt></ruby> <ruby>忘<rt>わす</rt></ruby>れないで',
+          romaji: 'hitotsu ni naru shunkan wasurenaide',
+          translation: '融为一体的瞬间 请不要忘记'
+        }
+      },
+      {
+        id: 'demo-outro-1',
+        startTimeMs: 24680,
+        endTimeMs: 48000,
+        kind: 'outro',
+        autoGenerated: false,
+        calls: [{ presetId: 'front-wave', suffix: '×4' }],
+        customShout: 'ハイ！ハイ！ハイハイハイ！',
+        text: {
+          original: '【尾奏】',
+          translation: '尾奏空档 23.3s（示范段落行，支持直接打 Call）'
+        }
+      }
+    ]
+  }
+}
