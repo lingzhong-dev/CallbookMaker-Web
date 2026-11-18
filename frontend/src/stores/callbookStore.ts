@@ -127,6 +127,51 @@ export const useCallbookStore = defineStore('callbook', () => {
   let persistTimer: number | null = null
   const tapTracker = new TapTempoCalculator()
 
+  interface TimelineUndoEntry {
+    project: CallProject
+    activeLineId: string | null
+    label: string
+  }
+  const undoHistory = ref<TimelineUndoEntry[]>([])
+  const canUndo = computed(() => undoHistory.value.length > 0)
+  const lastUndoLabel = computed(() =>
+    undoHistory.value.length > 0
+      ? undoHistory.value[undoHistory.value.length - 1].label
+      : null
+  )
+
+  function clearUndoHistory(): void {
+    undoHistory.value = []
+  }
+
+  function pushUndoSnapshot(label: string): void {
+    const cloned = JSON.parse(JSON.stringify(project.value)) as CallProject
+    undoHistory.value.push({
+      project: cloned,
+      activeLineId: activeLineId.value,
+      label
+    })
+    if (undoHistory.value.length > 25) {
+      undoHistory.value.shift()
+    }
+  }
+
+  function undoLastTimelineEdit(): boolean {
+    const entry = undoHistory.value.pop()
+    if (!entry) return false
+    project.value = normalizeCallProject(entry.project)
+    const fallbackId = sortedLines.value[0]?.id ?? null
+    if (entry.activeLineId && project.value.lines.some((l) => l.id === entry.activeLineId)) {
+      activeLineId.value = entry.activeLineId
+    } else {
+      activeLineId.value = fallbackId
+    }
+    syncEngineConfig()
+    schedulePersist()
+    setStatus(`已撤销「${entry.label}」`)
+    return true
+  }
+
   const allPresets = computed<CallPreset[]>(() => [
     ...DEFAULT_CALL_PRESETS,
     ...customPresets.value
@@ -820,6 +865,7 @@ export const useCallbookStore = defineStore('callbook', () => {
       return false
     }
 
+    pushUndoSnapshot('合并下句')
     const merged = mergeAdjacentLyricLines(first, second)
     project.value.lines = project.value.lines
       .filter((l) => l.id !== second.id)
@@ -842,7 +888,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     activeLineId.value = first.id
     syncEngineConfig()
     schedulePersist()
-    setStatus('已合并相邻两句歌词')
+    setStatus('已合并相邻两句歌词（可点击「撤销」恢复）')
     return true
   }
 
@@ -881,6 +927,12 @@ export const useCallbookStore = defineStore('callbook', () => {
     const line = project.value.lines.find((l) => l.id === lineId)
     if (!line) return
     const t = Math.round(currentTimeMs.value)
+    const firstLine = sortedLines.value[0]
+    if (!isPlaying.value && t <= 0 && line.startTimeMs > 0 && firstLine && firstLine.id !== lineId) {
+      setStatus('当前播放时刻为 00:00.00，请先播放音频或拖动进度条到目标时刻后再「校时」')
+      return
+    }
+    pushUndoSnapshot('校时')
     const duration = Math.max(1000, line.endTimeMs - line.startTimeMs)
     line.startTimeMs = t
     line.endTimeMs = t + duration
@@ -891,6 +943,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     }
     project.value.lines.sort((a, b) => a.startTimeMs - b.startTimeMs)
     schedulePersist()
+    setStatus(`已对齐当前时间（可点击「撤销」恢复）`)
   }
 
   function deleteLyricLine(lineId: string): void {
@@ -1035,6 +1088,7 @@ export const useCallbookStore = defineStore('callbook', () => {
   }
 
   function loadDemoProject(): void {
+    clearUndoHistory()
     bpmDetectToken++
     isDetectingBpm.value = false
     localAudioFile = null
@@ -1057,6 +1111,7 @@ export const useCallbookStore = defineStore('callbook', () => {
   }
 
   function loadFromTrackDetail(detail: TrackDetailResponse): void {
+    clearUndoHistory()
     bpmDetectToken++
     isDetectingBpm.value = false
     localAudioFile = null
@@ -1172,6 +1227,7 @@ export const useCallbookStore = defineStore('callbook', () => {
       (a) => !a.targetLineId || validIds.has(a.targetLineId)
     )
     activeLineId.value = detected.lines[0]?.id ?? null
+    clearUndoHistory()
     syncEngineConfig()
     activeArchiveId.value = null
     hasFetchedExternalLyrics.value = true
@@ -1238,6 +1294,7 @@ export const useCallbookStore = defineStore('callbook', () => {
       activeLineId.value = normalized.lines[0]?.id ?? null
       const maxEnd = normalized.lines.reduce((acc, l) => Math.max(acc, l.endTimeMs), 0)
       engine.setSource(normalized.meta.audioUrl || '', Math.max(48000, maxEnd + 4000))
+      clearUndoHistory()
       syncEngineConfig()
       activeArchiveId.value = null
       hasFetchedExternalLyrics.value = true
@@ -1329,6 +1386,7 @@ export const useCallbookStore = defineStore('callbook', () => {
     knownAudioDurationMs.value = restoredProject.meta.platform === 'synthetic' ? 48000 : 0
     activeLineId.value = restoredProject.lines[0]?.id ?? null
     engine.setSource(restoredProject.meta.audioUrl || '', Math.max(48000, maxEnd + 4000))
+    clearUndoHistory()
     syncEngineConfig()
 
     activeArchiveId.value = found.id
@@ -1447,6 +1505,9 @@ export const useCallbookStore = defineStore('callbook', () => {
     detectSections,
     updateLyricLineText,
     mergeWithNextLine,
+    canUndo,
+    lastUndoLabel,
+    undoLastTimelineEdit,
     upsertAlignedCall,
     removeAlignedCall,
     stampLineToCurrentTime,

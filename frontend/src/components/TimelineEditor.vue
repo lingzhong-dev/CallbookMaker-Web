@@ -545,6 +545,22 @@ function lineCardStyle(line: LyricLine): Record<string, string> {
           </button>
 
           <button
+            v-if="store.canUndo"
+            type="button"
+            data-testid="undo-timeline-btn"
+            @click="store.undoLastTimelineEdit()"
+            class="inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold prism-press border"
+            :style="{
+              backgroundColor: 'var(--fc-block)',
+              color: 'var(--md-on-surface)',
+              borderColor: 'var(--md-outline-variant)'
+            }"
+            :title="store.lastUndoLabel ? `撤销：${store.lastUndoLabel}` : '撤销'"
+          >
+            <span>撤销</span>
+          </button>
+
+          <button
             type="button"
             @click="store.addLyricLine(store.activeLineId || undefined)"
             class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-xs font-semibold prism-press"

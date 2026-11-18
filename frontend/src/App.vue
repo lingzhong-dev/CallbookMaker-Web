@@ -99,6 +99,30 @@ function handleKeyDown(e: KeyboardEvent): void {
 
   if (isTypingElement(e.target)) return
 
+  if (e.ctrlKey || e.metaKey || e.altKey) {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      !e.altKey &&
+      !e.shiftKey &&
+      e.key.toLowerCase() === 'z' &&
+      store.canUndo
+    ) {
+      e.preventDefault()
+      store.undoLastTimelineEdit()
+    }
+    return
+  }
+
+  if (
+    uiStore.editPresetDialog.open ||
+    uiStore.singAlongPrompt.open ||
+    uiStore.savePromptDialog?.open ||
+    uiStore.confirmDialog.open ||
+    uiStore.showSourceModal
+  ) {
+    return
+  }
+
   if (e.code === 'Space' || e.key === ' ') {
     e.preventDefault()
     store.togglePlay()
